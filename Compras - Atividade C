@@ -1,0 +1,273 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#define CAPACIDADE 5
+#define TAM_NOME 50
+
+/* ---------- Estrutura do item ---------- */
+typedef struct {
+    int id;
+    char nome[TAM_NOME];
+} Item;
+
+/* ---------- Fila Simples ---------- */
+Item filaSimples[CAPACIDADE];
+int inicioSimples = 0;
+int fimSimples = -1;
+int tamanhoSimples = 0;
+
+/* ---------- Fila Circular ---------- */
+Item filaCircular[CAPACIDADE];
+int inicioCircular = 0;
+int fimCircular = -1;
+int tamanhoCircular = 0;
+
+int proximoId = 1;
+
+/* Limpa o \n deixado no buffer depois de um scanf("%d", ...) */
+void limparBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
+/* ==================== FILA SIMPLES ==================== */
+
+void adicionarSimples() {
+    system("clear");
+    if (fimSimples == CAPACIDADE - 1) {
+        printf("ERRO: Fila Simples cheia! (fim chegou ao limite do array)\n");
+        printf("Mesmo que existam espacos livres no inicio, a fila simples nao os reaproveita.\n");
+        sleep(3);
+        return;
+    }
+    fimSimples++;
+    filaSimples[fimSimples].id = proximoId++;
+    printf("Digite o nome do item: ");
+    fgets(filaSimples[fimSimples].nome, TAM_NOME, stdin);
+    filaSimples[fimSimples].nome[strcspn(filaSimples[fimSimples].nome, "\n")] = '\0';
+    tamanhoSimples++;
+    printf("\nItem '%s' adicionado a Fila Simples!\n", filaSimples[fimSimples].nome);
+    sleep(2);
+}
+
+void removerSimples() {
+    system("clear");
+    if (tamanhoSimples == 0) {
+        printf("A Fila Simples esta vazia. Nada para remover.\n");
+    } else {
+        printf("Item removido: %s\n", filaSimples[inicioSimples].nome);
+        inicioSimples++;
+        tamanhoSimples--;
+    }
+    sleep(2);
+}
+
+void consultarSimples() {
+    system("clear");
+    if (tamanhoSimples == 0) {
+        printf("A Fila Simples esta vazia.\n");
+    } else {
+        printf("Proximo item a comprar: %s\n", filaSimples[inicioSimples].nome);
+    }
+    sleep(2);
+}
+
+void listarSimples() {
+    system("clear");
+    printf("==== LISTA DE COMPRAS (FILA SIMPLES) ====\n");
+    if (tamanhoSimples == 0) {
+        printf("(vazia)\n");
+    } else {
+        for (int i = inicioSimples; i <= fimSimples; i++) {
+            printf(" [%d] %s\n", filaSimples[i].id, filaSimples[i].nome);
+        }
+    }
+    printf("==========================================\n");
+    printf("inicio=%d, fim=%d, tamanho=%d/%d\n", inicioSimples, fimSimples, tamanhoSimples, CAPACIDADE);
+    printf("\nPressione ENTER para voltar...");
+    getchar();
+}
+
+/* ==================== FILA CIRCULAR ==================== */
+
+void adicionarCircular() {
+    system("clear");
+    if (tamanhoCircular == CAPACIDADE) {
+        printf("ERRO: Fila Circular cheia!\n");
+        sleep(3);
+        return;
+    }
+    fimCircular = (fimCircular + 1) % CAPACIDADE;
+    filaCircular[fimCircular].id = proximoId++;
+    printf("Digite o nome do item: ");
+    fgets(filaCircular[fimCircular].nome, TAM_NOME, stdin);
+    filaCircular[fimCircular].nome[strcspn(filaCircular[fimCircular].nome, "\n")] = '\0';
+    tamanhoCircular++;
+    printf("\nItem '%s' adicionado a Fila Circular!\n", filaCircular[fimCircular].nome);
+    sleep(2);
+}
+
+void removerCircular() {
+    system("clear");
+    if (tamanhoCircular == 0) {
+        printf("A Fila Circular esta vazia. Nada para remover.\n");
+    } else {
+        printf("Item removido: %s\n", filaCircular[inicioCircular].nome);
+        inicioCircular = (inicioCircular + 1) % CAPACIDADE;
+        tamanhoCircular--;
+    }
+    sleep(2);
+}
+
+void consultarCircular() {
+    system("clear");
+    if (tamanhoCircular == 0) {
+        printf("A Fila Circular esta vazia.\n");
+    } else {
+        printf("Proximo item a comprar: %s\n", filaCircular[inicioCircular].nome);
+    }
+    sleep(2);
+}
+
+void listarCircular() {
+    system("clear");
+    printf("==== LISTA DE COMPRAS (FILA CIRCULAR) ====\n");
+    if (tamanhoCircular == 0) {
+        printf("(vazia)\n");
+    } else {
+        int idx = inicioCircular;
+        for (int i = 0; i < tamanhoCircular; i++) {
+            printf(" [%d] %s\n", filaCircular[idx].id, filaCircular[idx].nome);
+            idx = (idx + 1) % CAPACIDADE;
+        }
+    }
+    printf("===========================================\n");
+    printf("inicio=%d, fim=%d, tamanho=%d/%d\n", inicioCircular, fimCircular, tamanhoCircular, CAPACIDADE);
+    printf("\nPressione ENTER para voltar...");
+    getchar();
+}
+
+/* ==================== SALVAR / CARREGAR ==================== */
+
+void salvar() {
+    system("clear");
+    FILE *arq = fopen("lista_compras.txt", "w");
+    if (!arq) {
+        printf("Erro ao abrir arquivo para salvar.\n");
+        sleep(2);
+        return;
+    }
+
+    fprintf(arq, "SIMPLES %d\n", tamanhoSimples);
+    for (int i = inicioSimples; i <= fimSimples; i++) {
+        fprintf(arq, "%d;%s\n", filaSimples[i].id, filaSimples[i].nome);
+    }
+
+    fprintf(arq, "CIRCULAR %d\n", tamanhoCircular);
+    int idx = inicioCircular;
+    for (int i = 0; i < tamanhoCircular; i++) {
+        fprintf(arq, "%d;%s\n", filaCircular[idx].id, filaCircular[idx].nome);
+        idx = (idx + 1) % CAPACIDADE;
+    }
+
+    fclose(arq);
+    printf("Listas salvas em 'lista_compras.txt' com sucesso!\n");
+    sleep(2);
+}
+
+void carregar() {
+    system("clear");
+    FILE *arq = fopen("lista_compras.txt", "r");
+    if (!arq) {
+        printf("Nenhum arquivo salvo encontrado.\n");
+        sleep(2);
+        return;
+    }
+
+    char tag[20];
+    int qtd;
+
+    /* Reinicia as filas em memoria */
+    inicioSimples = 0; fimSimples = -1; tamanhoSimples = 0;
+    inicioCircular = 0; fimCircular = -1; tamanhoCircular = 0;
+
+    fscanf(arq, "%19s %d", tag, &qtd);
+    for (int i = 0; i < qtd && i < CAPACIDADE; i++) {
+        fimSimples++;
+        fscanf(arq, "%d;", &filaSimples[fimSimples].id);
+        fgets(filaSimples[fimSimples].nome, TAM_NOME, arq);
+        filaSimples[fimSimples].nome[strcspn(filaSimples[fimSimples].nome, "\n")] = '\0';
+        tamanhoSimples++;
+    }
+
+    fscanf(arq, "%19s %d", tag, &qtd);
+    for (int i = 0; i < qtd && i < CAPACIDADE; i++) {
+        fimCircular = (fimCircular + 1) % CAPACIDADE;
+        fscanf(arq, "%d;", &filaCircular[fimCircular].id);
+        fgets(filaCircular[fimCircular].nome, TAM_NOME, arq);
+        filaCircular[fimCircular].nome[strcspn(filaCircular[fimCircular].nome, "\n")] = '\0';
+        tamanhoCircular++;
+    }
+
+    fclose(arq);
+    printf("Listas carregadas de 'lista_compras.txt' com sucesso!\n");
+    sleep(2);
+}
+
+/* ==================== MENU ==================== */
+
+void menu() {
+    int opcao;
+    do {
+        system("clear");
+        printf("==================== MENU - LISTA DE COMPRAS ====================\n");
+        printf(" -- FILA SIMPLES --\n");
+        printf("  1 - Adicionar item\n");
+        printf("  2 - Remover item\n");
+        printf("  3 - Consultar proximo item\n");
+        printf("  4 - Listar itens\n");
+        printf(" -- FILA CIRCULAR --\n");
+        printf("  5 - Adicionar item\n");
+        printf("  6 - Remover item\n");
+        printf("  7 - Consultar proximo item\n");
+        printf("  8 - Listar itens\n");
+        printf(" -- ARQUIVO --\n");
+        printf("  9 - Salvar listas\n");
+        printf(" 10 - Carregar listas\n");
+        printf("  0 - Sair\n");
+        printf("===================================================================\n");
+        printf("Escolha uma opcao: ");
+        scanf("%d", &opcao);
+        limparBuffer();
+
+        switch (opcao) {
+            case 1: adicionarSimples(); break;
+            case 2: removerSimples(); break;
+            case 3: consultarSimples(); break;
+            case 4: listarSimples(); break;
+            case 5: adicionarCircular(); break;
+            case 6: removerCircular(); break;
+            case 7: consultarCircular(); break;
+            case 8: listarCircular(); break;
+            case 9: salvar(); break;
+            case 10: carregar(); break;
+            case 0:
+                system("clear");
+                printf("Programa encerrado!\n");
+                break;
+            default:
+                system("clear");
+                printf("======================\n");
+                printf("=== Opcao Invalida ===\n");
+                printf("======================\n");
+                sleep(2);
+        }
+    } while (opcao != 0);
+}
+
+int main() {
+    menu();
+    return 0;
+}
