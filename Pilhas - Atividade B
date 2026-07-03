@@ -1,0 +1,222 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <windows.h>
+#include <fcntl.h>
+#include <io.h>
+#include <locale.h>
+
+#define MAX 100
+
+struct Email{
+    int id;
+    wchar_t remetente[50];
+    wchar_t assunto[100];
+    wchar_t data[20];
+};
+
+struct Email p[MAX];
+int topo = -1, ind = 0, inc = 0; // ind: ids unicos; inc: emails lidos
+
+void push() {
+    if (topo >= MAX-1) {
+        wprintf(L"==============================\n");
+        wprintf(L" Erro: Lista de Emails cheia. \n");
+        wprintf(L"==============================\n");
+        sleep(2);
+        return;
+    }
+    p[++topo].id = ind++;
+    wprintf(L"Digite o nome do Remetente: ");
+    fgetws(p[topo].remetente, 50, stdin);
+    p[topo].remetente[wcscspn(p[topo].remetente, L"\n")] = '\0';
+    wprintf(L"Digite o Assunto:\n");
+    fgetws(p[topo].assunto, 100, stdin);
+    p[topo].assunto[wcscspn(p[topo].assunto, L"\n")] = '\0';
+    wprintf(L"Digite a Data: ");
+    fgetws(p[topo].data, 20, stdin);
+    p[topo].data[wcscspn(p[topo].data, L"\n")] = '\0';
+}
+
+void pop() {
+    if (topo == -1) {
+        wprintf(L"=============================\n");
+        wprintf(L" Erro: Lista de Emails vazia \n");
+        wprintf(L"=============================\n");
+        sleep(2);
+        return;
+    }
+    wprintf(L"== Ultimo Email ==\n");
+    wprintf(L"ID: %d\n", p[topo].id);
+    wprintf(L"Remetente: %ls\n", p[topo].remetente);
+    wprintf(L"Assunto: %ls\n", p[topo].assunto);
+    wprintf(L"Data: %ls\n", p[topo].data);
+    topo--;
+    inc++;
+    getwchar(); //pausar
+}
+
+void peek() {
+    if (topo == -1) {
+        wprintf(L"=============================\n");
+        wprintf(L" Erro: Lista de Emails vazia \n");
+        wprintf(L"=============================\n");
+        sleep(2);
+        return;
+    }
+    wprintf(L"== Ultimo Email ==\n");
+    wprintf(L"ID: %d\n", p[topo].id);
+    wprintf(L"Remetente: %ls\n", p[topo].remetente);
+    wprintf(L"Assunto: %ls\n", p[topo].assunto);
+    wprintf(L"Data: %ls\n", p[topo].data);
+    getwchar(); //pausar
+}
+
+void list() {
+    if (topo == -1) {
+        wprintf(L"=============================\n");
+        wprintf(L" Erro: Lista de Emails vazia \n");
+        wprintf(L"=============================\n");
+        sleep(2);
+        return;
+    }
+    int temp = topo;
+    do {
+        wprintf(L"== %dº Email ==\n", temp+1);
+        wprintf(L"ID: %d\n", p[temp].id);
+        wprintf(L"Remetente: %ls\n", p[temp].remetente);
+        wprintf(L"Assunto: %ls\n", p[temp].assunto);
+        wprintf(L"Data: %ls\n", p[temp].data);
+        //inc++;
+    } while (--temp > -1);
+    getwchar(); //pausar
+}
+
+void save() {
+    if (topo == -1) {
+        wprintf(L"=============================\n");
+        wprintf(L" Erro: Lista de Emails vazia \n");
+        wprintf(L"    Não é possivel Salvar    \n");
+        wprintf(L"=============================\n");
+        sleep(2);
+        return;
+    }
+    FILE *file;
+    file = fopen("Av3_Pilhas.csv", "w");
+    if (file == NULL) {
+        wprintf(L"==============================================\n");
+        wprintf(L" Erro: Arquivo Para Salvamento Não Encontrado \n");
+        wprintf(L"==============================================\n");
+        sleep(2);
+        return;
+    }
+    for (int i=topo; i > -1; i--) {
+        fwprintf(file,
+                L"%d;%ls;%ls;%ls;\n",
+                p[i].id,
+                p[i].remetente,
+                p[i].assunto,
+                p[i].data);
+        if (ferror(file)) {
+            wprintf(L"=====================================\n");
+            wprintf(L" Erro: Erro na Escritura pro Arquivo \n");
+            wprintf(L"=====================================\n");
+            sleep(2);
+            return;
+        }
+    }
+    fclose(file);
+    wprintf(L"====================================\n");
+    wprintf(L" (%d) Email(s) Escritos pro Arquivo \n", topo+1);
+    wprintf(L"====================================\n");
+    getwchar();
+}
+
+void load() {
+    FILE *file;
+    file = fopen("Av3_Pilhas.csv", "r");
+    if (file == NULL) {
+        wprintf(L"==============================================\n");
+        wprintf(L" Erro: Arquivo de Carregamento Não Encontrado \n");
+        wprintf(L"==============================================\n");
+        sleep(2);
+        return;
+    }
+    int read = 0 , records = 0;
+    do {
+        read = fwscanf(file,
+                      L"%d;%49[^;];%99[^;];%19[^;];\n",
+                      &p[topo+1].id,
+                      p[topo+1].remetente,
+                      p[topo+1].assunto,
+                      p[topo+1].data);
+        if (read == 4) {topo++; records++;}
+        if (read != 4 && !feof(file)) {
+            wprintf(L"=============================================\n");
+            wprintf(L" Erro: Arquivo de Carregamento Mal Formatado \n");
+            wprintf(L"=============================================\n");
+            sleep(2);
+            return;
+        }
+        if (ferror(file)) {
+            wprintf(L"==================================\n");
+            wprintf(L" Erro: Erro na Leitura do Arquivo \n");
+            wprintf(L"==================================\n");
+            sleep(2);
+            return;
+        }
+    } while (!feof(file));
+    fclose(file);
+    //for (int i=0, i<records, i++) {
+    //}
+    wprintf(L"======================================\n");
+    wprintf(L" (%d) Email(s) Encontrados no Arquivo \n", records);
+    wprintf(L"======================================\n");
+    sleep(2);
+}
+
+int main() {
+    int menu;
+    setlocale(LC_ALL, ""); //necessário
+    _setmode(_fileno(stdin),  _O_U16TEXT);
+    _setmode(_fileno(stdout), _O_U16TEXT);
+    //SetConsoleCP(CP_UTF8); SetConsoleOutputCP(CP_UTF8); 
+    do {
+        system("cls");
+        wprintf(L"==== MENU =========================================\n");
+        wprintf(L" (%d) Email(s) no Correio, (%d) lidos no total\n", topo+1, inc);
+        wprintf(L" 1 - Escrever Email\n"); // (Adicionar na Pilha)
+        wprintf(L" 2 - Ler Email e Marcar Como Lido\n");
+        wprintf(L" 3 - Consultar Email Sem Marcar Como Lido\n");
+        wprintf(L" 4 - Listar Todos os Emails (Sem Marcar Como Lido)\n");
+        wprintf(L" 5 - Salvar Lista de Emails\n");
+        wprintf(L" 6 - Carregar Lista de Emails\n");
+        wprintf(L" 0 - Terminar Programa\n");
+        wprintf(L"===================================================\n");
+        wscanf(L"%d", &menu);
+        getwchar();
+        system("cls");
+        switch (menu) {
+            case 1: push(); break;
+            case 2: pop();  break;
+            case 3: peek(); break;
+            case 4: list(); break;
+            case 5: save(); break;
+            case 6: load(); break;
+            case 0:
+            wprintf(L"===========================\n");
+            wprintf(L"=== Programa Terminado! ===\n");
+            wprintf(L"===========================");
+            break;
+            default:
+            wprintf(L"======================\n");
+            wprintf(L"=== Opção Invalida ===\n");
+            wprintf(L"======================\n");
+            sleep(3);
+        }
+        
+    } while (menu);
+    return 0;
+}
+// Meu gato me ajudou com isso
